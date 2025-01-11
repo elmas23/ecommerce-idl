@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/elmas23/ecommerce-idl/shipping";
+
+// CreateShippingRequest is the request message for creating a shipping
+message CreateShippingRequest {
+    string address = 1;
+}
+
+// CreateShippingResponse is the response message for creating a shipping
+message CreateShippingResponse {}
+
+service Shipping {
+    rpc Create(CreateShippingRequest) returns (CreateShippingResponse){}
+}
