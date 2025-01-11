@@ -41,7 +41,6 @@ jobs:
       - name: Initialize Go Module
         run: |
           cd golang
-          go mod init github.com/elmas23/ecommerce-idl
           go mod tidy
 
       # Step 6: Commit and push the changes
