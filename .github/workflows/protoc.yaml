@@ -1,26 +1,56 @@
 name: "Protocol Buffer Go Stubs Generation"
+
 on:
   push:
-    tags:
-      - v**
+    branches:
+      - '*'  # Trigger on all branches
+
 jobs:
   protoc:
-    name: "Generate"
+    name: "Generate Protocol Buffer Go Stubs"
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: ["order", "payment", "shipping"]
+
     steps:
+      # Step 1: Set up Go
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5  # Use the latest version of the setup-go action
         with:
-          go-version: '^1.13.1'
-      - uses: actions/checkout@v4
-      - name: Etract Release Version
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: "Generate for Golang"
-        shell: bash
+          go-version: 'stable'  # Automatically uses the latest stable Go version
+          check-latest: true    # Ensures the action checks for the latest available version
+
+      # Step 2: Checkout the repository
+      - uses: actions/checkout@v4  # Use the latest version of the checkout action
+
+      # Step 3: Install necessary tools
+      - name: Install Protobuf Compiler and Go Plugins
         run: |
-          chmod +x "${GITHUB_WORKSPACE}/protoc.sh"
-          ls -alh ${GITHUB_WORKSPACE}
-          ./protoc.sh ${{ matrix.service }} ${{ env.RELEASE_VERSION }} ${{ github.actor }} ${{ github.actor }}@users.noreply.github.com
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+      # Step 4: Generate Go stubs from .proto files
+      - name: Generate Protocol Buffers for Go
+        run: |
+          mkdir -p ./golang
+          protoc --go_out=./golang --go_opt=paths=source_relative \
+                 --go-grpc_out=./golang --go-grpc_opt=paths=source_relative \
+                 ./**/*.proto
+
+      # Step 5: Initialize Go module and tidy dependencies
+      - name: Initialize Go Module
+        run: |
+          cd golang
+          go mod init github.com/elmas23/ecommerce-idl
+          go mod tidy
+
+      # Step 6: Commit and push the changes
+      - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use GitHub-provided token for authentication
+        run: |
+          git config --global user.email "masankaelie1@gmail.com"
+          git config --global user.name "elmas23"
+          git add .
+          git commit -m "proto update"
+          git push origin main
